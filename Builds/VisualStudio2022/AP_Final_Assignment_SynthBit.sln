@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio Version 17
+
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AP_Final_Assignment_SynthBit - Standalone Plugin", "AP_Final_Assignment_SynthBit_StandalonePlugin.vcxproj", "{5E77B701-8C25-28D9-99DF-A925D35AA794}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7C691A60-1834-03B0-0EF9-B0A6DC17B6AE} = {7C691A60-1834-03B0-0EF9-B0A6DC17B6AE}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AP_Final_Assignment_SynthBit - VST3", "AP_Final_Assignment_SynthBit_VST3.vcxproj", "{33C5EDFD-3FF8-6625-1D76-6321502C8CBB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7C691A60-1834-03B0-0EF9-B0A6DC17B6AE} = {7C691A60-1834-03B0-0EF9-B0A6DC17B6AE}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AP_Final_Assignment_SynthBit - Shared Code", "AP_Final_Assignment_SynthBit_SharedCode.vcxproj", "{7C691A60-1834-03B0-0EF9-B0A6DC17B6AE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{33C5EDFD-3FF8-6625-1D76-6321502C8CBB}.Debug|x64.ActiveCfg = Debug|x64
+		{33C5EDFD-3FF8-6625-1D76-6321502C8CBB}.Debug|x64.Build.0 = Debug|x64
+		{33C5EDFD-3FF8-6625-1D76-6321502C8CBB}.Release|x64.ActiveCfg = Release|x64
+		{33C5EDFD-3FF8-6625-1D76-6321502C8CBB}.Release|x64.Build.0 = Release|x64
+		{5E77B701-8C25-28D9-99DF-A925D35AA794}.Debug|x64.ActiveCfg = Debug|x64
+		{5E77B701-8C25-28D9-99DF-A925D35AA794}.Debug|x64.Build.0 = Debug|x64
+		{5E77B701-8C25-28D9-99DF-A925D35AA794}.Release|x64.ActiveCfg = Release|x64
+		{5E77B701-8C25-28D9-99DF-A925D35AA794}.Release|x64.Build.0 = Release|x64
+		{7C691A60-1834-03B0-0EF9-B0A6DC17B6AE}.Debug|x64.ActiveCfg = Debug|x64
+		{7C691A60-1834-03B0-0EF9-B0A6DC17B6AE}.Debug|x64.Build.0 = Debug|x64
+		{7C691A60-1834-03B0-0EF9-B0A6DC17B6AE}.Release|x64.ActiveCfg = Release|x64
+		{7C691A60-1834-03B0-0EF9-B0A6DC17B6AE}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
