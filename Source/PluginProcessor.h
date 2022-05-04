@@ -9,6 +9,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "synthBasic.h"
 
 //==============================================================================
 /**
@@ -54,6 +55,9 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 private:
+
+    juce::Synthesiser mySynth; 
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AP_Final_Assignment_SynthBitAudioProcessor)
 };
