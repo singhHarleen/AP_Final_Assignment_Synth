@@ -8,6 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include"synthBasic.h"
 
 //==============================================================================
 AP_Final_Assignment_SynthBitAudioProcessor::AP_Final_Assignment_SynthBitAudioProcessor()
@@ -19,9 +20,28 @@ AP_Final_Assignment_SynthBitAudioProcessor::AP_Final_Assignment_SynthBitAudioPro
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
 #endif
+    parameters(*this, nullptr, "ParamTreeID", {
+        std::make_unique<juce::AudioParameterFloat>("detune", "Detune (Hz)" , 0.0f, 20.0f, 0.0f),
+        std::make_unique<juce::AudioParameterFloat>("filterCutoff", "Filter Cutoff" , 20.0, 18000.0, 200.0),
+        std::make_unique<juce::AudioParameterFloat>("sineLfo", "LFO" , 0.0, 20.0, 0),
+ })
 {
+
+    detuneParam = parameters.getRawParameterValue("detune"); 
+    filterCutoffParam = parameters.getRawParameterValue("filterCutoff");
+    sineLfoParam = parameters.getRawParameterValue("sineLfo");
+        
+    
+    // constructor 
+    for (int i = 0; i<voiceCount; i++)
+    {
+        mySynth.addVoice(new HsSynthVoice());
+    }
+
+    mySynth.addSound(new YourSynthSound);
+   
 }
 
 AP_Final_Assignment_SynthBitAudioProcessor::~AP_Final_Assignment_SynthBitAudioProcessor()
@@ -93,6 +113,13 @@ void AP_Final_Assignment_SynthBitAudioProcessor::changeProgramName (int index, c
 //==============================================================================
 void AP_Final_Assignment_SynthBitAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    mySynth.setCurrentPlaybackSampleRate(sampleRate);
+
+    for (int i = 0; i < voiceCount; i++)
+    {
+        HsSynthVoice* v = dynamic_cast<HsSynthVoice*>(mySynth.getVoice(i));
+        v->hsSynthInitialise(sampleRate);
+    }
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
 }
@@ -132,36 +159,23 @@ bool AP_Final_Assignment_SynthBitAudioProcessor::isBusesLayoutSupported (const B
 void AP_Final_Assignment_SynthBitAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    for (int i = 0; i < voiceCount; i++)
     {
-        auto* channelData = buffer.getWritePointer (channel);
-
-        // ..do something to the data...
+        HsSynthVoice* v = dynamic_cast<HsSynthVoice*>(mySynth.getVoice(i));
+        v->setDetune(*detuneParam);
+        v->setFilterCutoff(*filterCutoffParam);
+        v->setLfoFreq(*sineLfoParam);
     }
+  
+
+    mySynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 }
 
 //==============================================================================
 bool AP_Final_Assignment_SynthBitAudioProcessor::hasEditor() const
 {
-    return true; // (change this to false if you choose to not supply an editor)
+    return false; // (change this to false if you choose to not supply an editor)
 }
 
 juce::AudioProcessorEditor* AP_Final_Assignment_SynthBitAudioProcessor::createEditor()
