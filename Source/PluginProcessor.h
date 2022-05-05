@@ -56,7 +56,14 @@ public:
 
 private:
 
+    juce::AudioProcessorValueTreeState parameters; 
+    std::atomic<float>* detuneParam;
+    std::atomic<float>* filterCutoffParam;
+    std::atomic<float>* sineLfoParam;
+
+
     juce::Synthesiser mySynth; 
+    int voiceCount = 16;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AP_Final_Assignment_SynthBitAudioProcessor)
