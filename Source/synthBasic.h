@@ -10,6 +10,7 @@
 
 #pragma once
 #include "hs_oscilators.h"
+#include "PluginProcessor.h"
 
 // ===========================
 // ===========================
@@ -59,6 +60,11 @@ public:
         squareOsc1.setSampleRate(sampleRate);
         squareOsc2.setSampleRate(sampleRate);
 
+        sawOsc1.setSampleRate(sampleRate);
+        sawOsc2.setSampleRate(sampleRate);
+
+        
+
         sinelfo1.setSampleRate(sampleRate);
 
         env.setSampleRate(sampleRate);      // sets sample rate for the ADSR object 
@@ -67,10 +73,10 @@ public:
 
 
         // ADSR parameters for the amp envelope 
-        envParams.attack = 0.5f; 
-        envParams.decay = 0.25f; 
-        envParams.sustain = 1.0f; 
-        envParams.release = 0.01f; 
+        envParams.attack = 0.5; 
+        envParams.decay = 0.25; 
+        envParams.sustain = 0.01; 
+        envParams.release = 0.01; 
 
         env.setParameters(envParams);
 
@@ -92,6 +98,21 @@ public:
     void setLfoFreq(float _lfoFreq)
     {
         lfo1Freq = _lfoFreq;
+    }
+
+    void setOutputGain(float _outputGain)
+    {
+        outputGain = _outputGain;
+    }
+
+    void setAmpAttack(float _ampAttack)
+    {
+        ampAttack = _ampAttack; 
+    }
+
+    void setAmpDecay(float _ampDecay)
+    {
+        ampDecay = _ampDecay;
     }
 
     //--------------------------------------------------------------------------
@@ -122,6 +143,13 @@ public:
 
         squareOsc1.setFrequency(freq);
         squareOsc2.setFrequency(freq);
+
+        sawOsc1.setFrequency(freq); 
+        sawOsc2.setFrequency(freq); 
+
+        
+
+        
 
 
 
@@ -183,7 +211,20 @@ public:
                 // your sample-by-sample DSP code here!
                 // An example white noise generater as a placeholder - replace with your own code
                 
-                float rawSignal = squareOsc1.process() * 0.5f * envVal; 
+
+                sinelfo1.setFrequency(lfo1Freq);
+
+                osc1 = squareOsc1.process(); 
+                osc2 = sawOsc2.process();
+                noiseOsc = random.nextFloat() * 2 - 1.0;
+                subOsc = triSubOsc.process(); 
+
+
+                float individualSignals = osc1 + osc2 + noiseOsc + subOsc;
+
+                float rawSignal = (individualSignals * sinelfo1.process()) * outputGain * envVal;
+
+                //if ()
 
                 float cutoff = sinelfo1.process();
                 
@@ -232,6 +273,18 @@ private:
 
     float detuneAmount; 
 
+    float outputGain;
+
+    float ampAttack; 
+    float ampDecay; 
+    float ampSustain;  
+    float ampRelease;
+
+    float osc1; 
+    float osc2; 
+    float noiseOsc; 
+    float subOsc; 
+
 
         
     float freq; 
@@ -242,6 +295,8 @@ private:
 
     SquareOsc squareOsc1, squareOsc2; 
 
+    Sawtooth sawOsc1, sawOsc2; 
+
     /// a random object for use in our test noise function
     juce::Random random;
 
@@ -250,6 +305,13 @@ private:
     juce::IIRFilter filter;
     float filterCutOff;
    
+    
+    // drop down choice paramters 
+    std::atomic<float>* osc1ChoiceParam;        // choice beteen different waveforms for oscilator 1
+    std::atomic<float>* osc2ChoiceParam;        // choice beteen different waveforms for oscilator 2
+    std::atomic<float>* subOscChoiceParam;      // choice beteen sine and triangle waveform
+    std::atomic<float>* noiseOscChoiceParam;    // choice between different types of noise 
+    std::atomic<float>* filterChoiceParam;      // choice between hp, lp, and bp filters
 
 
    

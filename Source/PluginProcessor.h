@@ -54,12 +54,30 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+
+
 private:
 
     juce::AudioProcessorValueTreeState parameters; 
     std::atomic<float>* detuneParam;
     std::atomic<float>* filterCutoffParam;
     std::atomic<float>* sineLfoParam;
+    std::atomic<float>* mainOutputGainParam;
+
+    // ADSR params 
+    std::atomic<float>* ampAttackParam;
+    std::atomic<float>* ampDecayParam;
+    std::atomic<float>* ampSustainParam;
+    std::atomic<float>* ampReleaseParam;
+
+
+    std::atomic<float>* osc1ChoiceParam;        // choice beteen different waveforms for oscilator 1
+    std::atomic<float>* osc2ChoiceParam;        // choice beteen different waveforms for oscilator 2
+    std::atomic<float>* subOscChoiceParam;      // choice beteen sine and triangle waveform
+    std::atomic<float>* noiseOscChoiceParam;    // choice between different types of noise 
+    std::atomic<float>* filterChoiceParam;      // choice between hp, lp, and bp filters
+
+
 
 
     juce::Synthesiser mySynth; 
