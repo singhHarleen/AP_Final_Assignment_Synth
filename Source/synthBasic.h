@@ -1,16 +1,13 @@
 /*
   ==============================================================================
 
-    YourSynthesiser.h
-    Created: 7 Mar 2020 4:27:57pm
-    Author:  Tom Mudd
-
   ==============================================================================
 */
 
 #pragma once
 #include "hs_oscilators.h"
 #include "PluginProcessor.h"
+#include "Delay.h"
 
 // ===========================
 // ===========================
@@ -22,8 +19,6 @@ public:
     //--------------------------------------------------------------------------
     bool appliesToChannel(int) override { return true; }
 };
-
-
 
 
 // =================================
@@ -46,7 +41,6 @@ public:
     void hsSynthInitialise(float sampleRate)
     {   
 
-        
         /// sets the sample rate for the sub oscilators 
         triSubOsc.setSampleRate(sampleRate); 
         subSinOsc.setSampleRate(sampleRate);
@@ -63,26 +57,36 @@ public:
         sawOsc1.setSampleRate(sampleRate);
         sawOsc2.setSampleRate(sampleRate);
 
-        
+        sr = sampleRate;
 
         sinelfo1.setSampleRate(sampleRate);
 
         env.setSampleRate(sampleRate);      // sets sample rate for the ADSR object 
+      
 
-        juce::ADSR::Parameters envParams; 
 
-
-        // ADSR parameters for the amp envelope 
-        envParams.attack = 0.5; 
-        envParams.decay = 0.25; 
-        envParams.sustain = 0.01; 
-        envParams.release = 0.01; 
-
-        env.setParameters(envParams);
-
+        delay.setSize(sampleRate);              // sets the sample rate of the delay object
+        // delay time
 
         filter.reset(); 
+        noiseFilter.reset();
 
+        reverb.setSampleRate(sampleRate);
+
+        //============================================= Setting smooth parameters 
+        smoothCutOff.reset(sampleRate, 1.0);
+        smoothCutOff.setCurrentAndTargetValue(0.0);
+
+    }
+
+    void linkParameters(std::atomic<float>* ptrToOsc1Choice, std::atomic<float>* ptrToOsc2Choice, std::atomic<float>* ptrToSubOscChoice,
+        std::atomic<float>* ptrToFilterChoice, std::atomic<float>* ptrToNoiseChoiceParam)
+    {
+        osc1ChoiceParam = ptrToOsc1Choice;
+        osc2ChoiceParam = ptrToOsc2Choice;
+        subOscChoiceParam = ptrToSubOscChoice;
+        filterChoiceParam = ptrToFilterChoice;
+        noiseOscChoiceParam = ptrToNoiseChoiceParam;
     }
 
     void setDetune(float detuneIn)
@@ -100,6 +104,11 @@ public:
         lfo1Freq = _lfoFreq;
     }
 
+    void setFilterQ(float _filterQ)
+    {
+        filterQ = _filterQ;
+    }
+
     void setOutputGain(float _outputGain)
     {
         outputGain = _outputGain;
@@ -115,6 +124,37 @@ public:
         ampDecay = _ampDecay;
     }
 
+    void setOsc1Vol(float _osc1Vol)
+    {
+        osc1Vol = _osc1Vol;
+    }
+
+    void setOsc2Vol(float _osc2Vol)
+    {
+        osc2Vol = _osc2Vol;
+    }
+
+    void setOscNoiseVol(float _oscNoiseVol)
+    {
+        oscNoiseVol = _oscNoiseVol;
+    }
+
+    void setOscSubVol(float _oscSubVol)
+    {
+        oscSubVol = _oscSubVol;
+    }
+
+    void setDelayTime(float _delayTime)
+    {
+        delayTime = _delayTime;
+    }
+
+    void setDelayFeedback(float _delayFeedback)
+    {
+        delayFeedback = _delayFeedback;
+    }
+
+
     //--------------------------------------------------------------------------
     /**
      What should be done when a note starts
@@ -129,28 +169,19 @@ public:
         playing = true;
         ending = false;
 
-
-       
         freq = juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
-
-
 
         triSubOsc.setFrequency(freq);
         subSinOsc.setFrequency(freq);
 
         triOsc1.setFrequency(freq);
-        triOsc2.setFrequency(freq);
+        triOsc2.setFrequency(freq - detuneAmount);
 
         squareOsc1.setFrequency(freq);
-        squareOsc2.setFrequency(freq);
+        squareOsc2.setFrequency(freq - detuneAmount);
 
         sawOsc1.setFrequency(freq); 
-        sawOsc2.setFrequency(freq); 
-
-        
-
-        
-
+        sawOsc2.setFrequency(freq - detuneAmount); 
 
 
         env.reset();    // restes the envelope 
@@ -178,7 +209,6 @@ public:
             playing = false;
         }
 
-      
     }
 
     //--------------------------------------------------------------------------
@@ -197,32 +227,97 @@ public:
         {
             sineOsc1.setFrequency(freq - detuneAmount);
             sineOsc2.setFrequency(freq - detuneAmount);
+            env.setParameters(envParams);
+
+            smoothCutOff.setTargetValue(filterCutOff);
+            
+            
 
             // iterate through the necessary number of samples (from startSample up to startSample + numSamples)
             for (int sampleIndex = startSample; sampleIndex < (startSample + numSamples); sampleIndex++)
             {
+
+                float cutOffafterSmooth = smoothCutOff.getNextValue();
+
+                // ADSR parameters for the amp envelope 
+                envParams.attack = ampAttack;
+                envParams.decay = ampDecay;
+                envParams.sustain = 0.01;
+                envParams.release = 0.01;
+
+                delay.setDelayTime(sr * delayTime);
+                delay.setFeedback(delayFeedback);
 
                 float envVal = env.getNextSample();
                
                
               // float filterCutoff = sinelfo1.process();
                 
-                filter.setCoefficients(juce::IIRCoefficients::makeLowPass(getSampleRate(), filterCutOff));
+               
                 // your sample-by-sample DSP code here!
                 // An example white noise generater as a placeholder - replace with your own code
                 
 
                 sinelfo1.setFrequency(lfo1Freq);
 
-                osc1 = squareOsc1.process(); 
-                osc2 = sawOsc2.process();
-                noiseOsc = random.nextFloat() * 2 - 1.0;
-                subOsc = triSubOsc.process(); 
+                // oscilator 1 
+                osc1 = sawOsc1.process() * osc1Vol;  
+
+                if (*osc1ChoiceParam == 1)
+                    osc1 = squareOsc1.process() * osc1Vol;
+
+                if (*osc1ChoiceParam == 2)
+                    osc1 = triOsc1.process() * osc1Vol;
+
+                if (*osc1ChoiceParam == 3)
+                    osc1 = sineOsc1.process() * osc1Vol;
+
+                // oscilator 2 
+                osc2 = sawOsc2.process() * osc2Vol;
+
+                if (*osc2ChoiceParam == 1)
+                    osc2 = squareOsc1.process() * osc2Vol;
+
+                if (*osc2ChoiceParam == 2)
+                    osc2 = triOsc1.process() * osc2Vol;
+
+                if (*osc2ChoiceParam == 3)
+                    osc2 = sineOsc1.process() * osc2Vol;
+
+                // sub oscilator 
+                subOsc = triSubOsc.process() * oscSubVol;
+                if (*subOscChoiceParam == 1)
+                    subOsc = subSinOsc.process() * oscSubVol;
+
+                noiseOsc = (random.nextFloat() * 2 - 1.0) * oscNoiseVol;
+
+                noiseFilter.setCoefficients(juce::IIRCoefficients::makeLowPass(getSampleRate(), 2000.0));
+                 
+                filter.setCoefficients(juce::IIRCoefficients::makeLowPass(getSampleRate(), cutOffafterSmooth, filterQ));
+                if (*filterChoiceParam == 1)
+                {
+                    filter.setCoefficients(juce::IIRCoefficients::makeHighPass(getSampleRate(), cutOffafterSmooth, filterQ));
+                }
+                if (*filterChoiceParam == 2)
+                {
+                    filter.setCoefficients(juce::IIRCoefficients::makeNotchFilter(getSampleRate(), cutOffafterSmooth, filterQ));
+                }
+
+                if (*noiseOscChoiceParam == 1)
+                {
+                    float whitenoiseSignal = (random.nextFloat() * 2 - 1.0) * oscNoiseVol;
+                    noiseOsc = noiseFilter.processSingleSampleRaw(whitenoiseSignal);
+                }
+
 
 
                 float individualSignals = osc1 + osc2 + noiseOsc + subOsc;
 
-                float rawSignal = (individualSignals * sinelfo1.process()) * outputGain * envVal;
+                float delayedSample = delay.process(individualSignals);
+
+               
+
+                float rawSignal = (delayedSample + individualSignals) * envVal * outputGain;
 
                 //if ()
 
@@ -244,7 +339,7 @@ public:
                         playing = false;
                     }
                 }
-                
+               
             }
         }
     }
@@ -277,15 +372,22 @@ private:
 
     float ampAttack; 
     float ampDecay; 
-    float ampSustain;  
-    float ampRelease;
+
+    float delayTime;
+    float delayFeedback; 
+
+    float sr;
+   
 
     float osc1; 
     float osc2; 
     float noiseOsc; 
     float subOsc; 
 
-
+    float osc1Vol; 
+    float osc2Vol; 
+    float oscSubVol; 
+    float oscNoiseVol; 
         
     float freq; 
     float lfo1Freq;
@@ -302,11 +404,47 @@ private:
 
     juce::ADSR env; 
 
+    juce::ADSR::Parameters envParams;
+
+    juce::SmoothedValue<float> smoothCutOff;
+    juce::SmoothedValue<float> smoothGain;
+
     juce::IIRFilter filter;
     float filterCutOff;
-   
+    float filterQ;
     
-    // drop down choice paramters 
+    juce::IIRFilter noiseFilter; 
+
+    Delay delay;
+
+
+    juce::Reverb reverb;
+
+    //juce::AudioProcessorValueTreeState parameters;
+    std::atomic<float>* detuneParam;
+    std::atomic<float>* filterCutoffParam;
+    std::atomic<float>* filterQParam;
+    std::atomic<float>* sineLfoParam;
+    std::atomic<float>* mainOutputGainParam;
+
+    // AD params 
+    std::atomic<float>* ampAttackParam;
+    std::atomic<float>* ampDecayParam;
+
+    // amplitude params for sound generators 
+    std::atomic<float>* osc1VolParam;
+    std::atomic<float>* osc2VolParam;
+    std::atomic<float>* noiseOscVolParam;
+    std::atomic<float>* subOscVolParam;
+
+    std::atomic<float>* delayTimeParam;     // param for delay time 
+    std::atomic<float>* delayFeedbackParam;     // param for delay feedback
+
+    std::atomic<float>* samplerOutputLevelParam;
+
+    
+    
+    //// drop down choice paramters 
     std::atomic<float>* osc1ChoiceParam;        // choice beteen different waveforms for oscilator 1
     std::atomic<float>* osc2ChoiceParam;        // choice beteen different waveforms for oscilator 2
     std::atomic<float>* subOscChoiceParam;      // choice beteen sine and triangle waveform
