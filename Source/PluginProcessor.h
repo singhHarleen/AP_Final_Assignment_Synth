@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 #include "synthBasic.h"
+#include "hs_sampler.h"
 
 //==============================================================================
 /**
@@ -61,27 +62,38 @@ private:
     juce::AudioProcessorValueTreeState parameters; 
     std::atomic<float>* detuneParam;
     std::atomic<float>* filterCutoffParam;
+    std::atomic<float>* filterQParam;
     std::atomic<float>* sineLfoParam;
     std::atomic<float>* mainOutputGainParam;
 
-    // ADSR params 
+    // AD params 
     std::atomic<float>* ampAttackParam;
     std::atomic<float>* ampDecayParam;
-    std::atomic<float>* ampSustainParam;
-    std::atomic<float>* ampReleaseParam;
 
+    // amplitude params for sound generators 
+    std::atomic<float>* osc1VolParam;
+    std::atomic<float>* osc2VolParam;
+    std::atomic<float>* noiseOscVolParam;
+    std::atomic<float>* subOscVolParam;
 
+    std::atomic<float>* delayTimeParam;     // param for delay time 
+    std::atomic<float>* delayFeedbackParam;     // param for delay feedback
+
+    std::atomic<float>* samplerOutputLevelParam;
+
+    // smooth parameter objects
+    //==============================================
+   
     std::atomic<float>* osc1ChoiceParam;        // choice beteen different waveforms for oscilator 1
     std::atomic<float>* osc2ChoiceParam;        // choice beteen different waveforms for oscilator 2
     std::atomic<float>* subOscChoiceParam;      // choice beteen sine and triangle waveform
     std::atomic<float>* noiseOscChoiceParam;    // choice between different types of noise 
     std::atomic<float>* filterChoiceParam;      // choice between hp, lp, and bp filters
 
-
-
-
-    juce::Synthesiser mySynth; 
+    juce::Synthesiser mySynth; // synth object 
+    hs_sampler mySampler; // sampler
     int voiceCount = 16;
+    int voiceCountSampler = 16;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AP_Final_Assignment_SynthBitAudioProcessor)
