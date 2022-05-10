@@ -8,6 +8,7 @@
 #include "hs_oscilators.h"
 #include "PluginProcessor.h"
 #include "Delay.h"
+#include "hs_sampler.h"
 
 // ===========================
 // ===========================
@@ -59,7 +60,7 @@ public:
 
         sr = sampleRate;
 
-        sinelfo1.setSampleRate(sampleRate);
+        sinelfo.setSampleRate(sampleRate);
 
         env.setSampleRate(sampleRate);      // sets sample rate for the ADSR object 
       
@@ -80,13 +81,14 @@ public:
     }
 
     void linkParameters(std::atomic<float>* ptrToOsc1Choice, std::atomic<float>* ptrToOsc2Choice, std::atomic<float>* ptrToSubOscChoice,
-        std::atomic<float>* ptrToFilterChoice, std::atomic<float>* ptrToNoiseChoiceParam)
+        std::atomic<float>* ptrToFilterChoice, std::atomic<float>* ptrToNoiseChoiceParam, std::atomic<float>* ptrToLfoParam)
     {
         osc1ChoiceParam = ptrToOsc1Choice;
         osc2ChoiceParam = ptrToOsc2Choice;
         subOscChoiceParam = ptrToSubOscChoice;
         filterChoiceParam = ptrToFilterChoice;
         noiseOscChoiceParam = ptrToNoiseChoiceParam;
+        lfoParam = ptrToLfoParam;
     }
 
     void setDetune(float detuneIn)
@@ -122,6 +124,16 @@ public:
     void setAmpDecay(float _ampDecay)
     {
         ampDecay = _ampDecay;
+    }
+
+    void setAmpSustain(float _ampSustain)
+    {
+        ampSustain = _ampSustain;
+    }
+
+    void setAmpRelease(float _ampRelease)
+    {
+        ampRelease = _ampRelease;
     }
 
     void setOsc1Vol(float _osc1Vol)
@@ -231,8 +243,6 @@ public:
 
             smoothCutOff.setTargetValue(filterCutOff);
             
-            
-
             // iterate through the necessary number of samples (from startSample up to startSample + numSamples)
             for (int sampleIndex = startSample; sampleIndex < (startSample + numSamples); sampleIndex++)
             {
@@ -242,8 +252,8 @@ public:
                 // ADSR parameters for the amp envelope 
                 envParams.attack = ampAttack;
                 envParams.decay = ampDecay;
-                envParams.sustain = 0.01;
-                envParams.release = 0.01;
+                envParams.sustain = ampSustain;
+                envParams.release = ampDecay;
 
                 delay.setDelayTime(sr * delayTime);
                 delay.setFeedback(delayFeedback);
@@ -258,7 +268,7 @@ public:
                 // An example white noise generater as a placeholder - replace with your own code
                 
 
-                sinelfo1.setFrequency(lfo1Freq);
+                sinelfo.setFrequency(lfo1Freq);
 
                 // oscilator 1 
                 osc1 = sawOsc1.process() * osc1Vol;  
@@ -315,21 +325,17 @@ public:
 
                 float delayedSample = delay.process(individualSignals);
 
-               
+                float lfo = sinelfo.process();
 
-                float rawSignal = (delayedSample + individualSignals) * envVal * outputGain;
+                float rawSignal = ((delayedSample + individualSignals) * envVal * outputGain) * lfo;
 
-                //if ()
-
-                float cutoff = sinelfo1.process();
-                
                 float currentSample = filter.processSingleSampleRaw(rawSignal);
 
                 // for each channel, write the currentSample float to the output
                 for (int chan = 0; chan < outputBuffer.getNumChannels(); chan++)
                 {
                     // The output sample is scaled by 0.2 so that it is not too loud by default
-                    outputBuffer.addSample(chan, sampleIndex, currentSample * 0.2);
+                    outputBuffer.addSample(chan, sampleIndex, currentSample * 0.2) ;
                 }
                 if (ending)
                 {
@@ -372,6 +378,8 @@ private:
 
     float ampAttack; 
     float ampDecay; 
+    float ampSustain;
+    float ampRelease; 
 
     float delayTime;
     float delayFeedback; 
@@ -392,8 +400,8 @@ private:
     float freq; 
     float lfo1Freq;
 
-    TriOsc triSubOsc, triOsc1, triOsc2; 
-    SinOsc subSinOsc, sineOsc1, sineOsc2, sinelfo1; 
+    TriOsc triSubOsc, triOsc1, triOsc2, triLfo; 
+    SinOsc subSinOsc, sineOsc1, sineOsc2, sinelfo; 
 
     SquareOsc squareOsc1, squareOsc2; 
 
@@ -424,12 +432,14 @@ private:
     std::atomic<float>* detuneParam;
     std::atomic<float>* filterCutoffParam;
     std::atomic<float>* filterQParam;
-    std::atomic<float>* sineLfoParam;
+    std::atomic<float>* lfoParam;
     std::atomic<float>* mainOutputGainParam;
 
-    // AD params 
+    // ADSR params 
     std::atomic<float>* ampAttackParam;
     std::atomic<float>* ampDecayParam;
+    std::atomic<float>* ampSustainParam; 
+    std::atomic<float>* ampReleaseParam;
 
     // amplitude params for sound generators 
     std::atomic<float>* osc1VolParam;
@@ -442,8 +452,6 @@ private:
 
     std::atomic<float>* samplerOutputLevelParam;
 
-    
-    
     //// drop down choice paramters 
     std::atomic<float>* osc1ChoiceParam;        // choice beteen different waveforms for oscilator 1
     std::atomic<float>* osc2ChoiceParam;        // choice beteen different waveforms for oscilator 2
@@ -451,6 +459,4 @@ private:
     std::atomic<float>* noiseOscChoiceParam;    // choice between different types of noise 
     std::atomic<float>* filterChoiceParam;      // choice between hp, lp, and bp filters
 
-
-   
 };

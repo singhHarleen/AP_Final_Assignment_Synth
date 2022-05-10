@@ -63,12 +63,14 @@ private:
     std::atomic<float>* detuneParam;
     std::atomic<float>* filterCutoffParam;
     std::atomic<float>* filterQParam;
-    std::atomic<float>* sineLfoParam;
+    std::atomic<float>* lfoParam;
     std::atomic<float>* mainOutputGainParam;
 
     // AD params 
     std::atomic<float>* ampAttackParam;
     std::atomic<float>* ampDecayParam;
+    std::atomic<float>* ampSustainParam;
+    std::atomic<float>* ampReleaseParam;
 
     // amplitude params for sound generators 
     std::atomic<float>* osc1VolParam;
@@ -80,6 +82,9 @@ private:
     std::atomic<float>* delayFeedbackParam;     // param for delay feedback
 
     std::atomic<float>* samplerOutputLevelParam;
+    std::atomic<float>* samplerAttackParam;
+
+    std::atomic<float>* audioSampleChoiceParam; // selects between multiple audio files  
 
     // smooth parameter objects
     //==============================================

@@ -30,10 +30,11 @@ public:
         addSound(new juce::SamplerSound("hsSamplr", *reader, samplrAllNotes, 60, 0, 0.1, 20.0));*/
     }
 
-    void linkParametersSampler(std::atomic<float>* ptrToSamplrVol)
+    void linkParametersSampler(std::atomic<float>* ptrToSamplerAttackParam)
     {
-        samplerOutputLevelParam = ptrToSamplrVol;
+        samplerAttackParam = ptrToSamplerAttackParam;
     }
+
     
     void setSample(const void* sourceData, size_t sourceDataSize)
     {
@@ -46,7 +47,8 @@ public:
 
         samplrAllNotes.setRange(0, 128, true);
 
-        addSound(new juce::SamplerSound("hsSamplr", *reader, samplrAllNotes, 60, 0, 0.1, 20.0));
+        addSound(new juce::SamplerSound("hsSamplr", *reader, samplrAllNotes, 60, 1.5, 0.1, 20.0));
+
     }
 
   /*  void setSamplerGain (float _samplerOutputGain)
@@ -56,7 +58,11 @@ public:
 
 private: 
     juce::AudioFormatManager formatManager; 
+    
     std::atomic<float>* samplerOutputLevelParam;
+    float samplerAttack;
+
+    std::atomic<float>* samplerAttackParam;
    // float samplerOutputGain; 
 };
 

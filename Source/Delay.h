@@ -110,5 +110,5 @@ private:
     int delayTimeInSamples; // delay time in samples
     float readPos = 0;      // read position
     int WritePos = 0;       // write position
-    float feedback;   // range in 0-1 
+    float feedback = 0.5;   // range in 0-1 
 };

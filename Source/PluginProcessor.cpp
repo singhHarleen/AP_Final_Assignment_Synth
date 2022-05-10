@@ -38,28 +38,35 @@ AP_Final_Assignment_SynthBitAudioProcessor::AP_Final_Assignment_SynthBitAudioPro
         std::make_unique<juce::AudioParameterFloat>("subOscVolume", "Sub Osc Level", 0.0, 1.0, 1.0),
         
         //noise osc 
-        std::make_unique<juce::AudioParameterFloat>("noiseOScVolume", "Noise Osc Level", 0.0, 1.0, 1.0),
+        std::make_unique<juce::AudioParameterFloat>("noiseOScVolume", "Noise Osc Level", 0.0, 1.0, 0.0),
         std::make_unique<juce::AudioParameterChoice>("noiseChoices", "Noise", juce::StringArray({"White", "Filtered"}),0),
 
         // IIRF 
         std::make_unique<juce::AudioParameterChoice>("filterChoices", "Filter", juce::StringArray({"Lowpass", "Highpass", "Notch"}),0),
-        std::make_unique<juce::AudioParameterFloat>("filterCutoff", "Filter Cutoff" , 20.0, 18000.0, 200.0),
+        std::make_unique<juce::AudioParameterFloat>("filterCutoff", "Filter Cutoff" , 20.0, 20000.0, 18000.0),
         std::make_unique<juce::AudioParameterFloat>("filterQ", "Q Factor", 0.1, 20.0, 1.0),
        
         // modulators 
         std::make_unique<juce::AudioParameterFloat>("detune", "Detune (Hz)" , 0.0f, 20.0f, 0.0f),
-        std::make_unique<juce::AudioParameterFloat>("sineLfo", "LFO" , 0.0, 20.0, 0),
+        std::make_unique<juce::AudioParameterFloat>("lfo", "LFO" , 0.0, 20.0, 0.15),
 
         // fx 
-        std::make_unique<juce::AudioParameterFloat>("delayTime", "Delay Time", 0.0, 5.0, 0.0),
+        std::make_unique<juce::AudioParameterFloat>("delayTime", "Delay Time", 0.0, 2.0, 0.0),
         std::make_unique<juce::AudioParameterFloat>("delayFeedback", "Delay Feedback", 0.0, 1.0, 0.0),
 
         // Amp Env 
         std::make_unique<juce::AudioParameterFloat>("ampAttack", "Amp Attack", 0.0, 5.0, 0.5),
-        std::make_unique<juce::AudioParameterFloat>("ampDecay", "Amp Decay", 0.0, 10.0, 2.0),
+        std::make_unique<juce::AudioParameterFloat>("ampDecay", "Amp Decay", 0.0, 5.0, 2.0),
+        std::make_unique<juce::AudioParameterFloat>("ampSustain", "Amp Sustain", 0.0, 1.0, 1.0),
+        std::make_unique<juce::AudioParameterFloat>("ampRelease", "Amp Release", 0.0, 5.0, 2.0),
         
         // Output Gain 
-        std::make_unique<juce::AudioParameterFloat>("outputGain", "Main Output", 0.0, 1.0, 0.5),
+        std::make_unique<juce::AudioParameterFloat>("outputGain", "Main Output", 0.0, 1.0, 0.3),
+
+        std::make_unique<juce::AudioParameterFloat>("samplerAttack", "Sampler Attack (ms)", 0.0, 5.0, 1.0),
+
+        std::make_unique<juce::AudioParameterChoice>("audioSampleChoices", "Audio Samples", juce::StringArray({"Sample 1", "Sample 2"}),0),
+
         
  })  
 {
@@ -78,7 +85,7 @@ AP_Final_Assignment_SynthBitAudioProcessor::AP_Final_Assignment_SynthBitAudioPro
     noiseOscChoiceParam = parameters.getRawParameterValue("noiseChoices");
 
     // modulator params 
-    sineLfoParam = parameters.getRawParameterValue("sineLfo");
+    lfoParam = parameters.getRawParameterValue("lfo");
     detuneParam = parameters.getRawParameterValue("detune"); 
 
     // filter params 
@@ -88,10 +95,16 @@ AP_Final_Assignment_SynthBitAudioProcessor::AP_Final_Assignment_SynthBitAudioPro
     // Amp env params
     ampAttackParam = parameters.getRawParameterValue("ampAttack");
     ampDecayParam = parameters.getRawParameterValue("ampDecay");
+    ampSustainParam = parameters.getRawParameterValue("ampSustain"); 
+    ampReleaseParam = parameters.getRawParameterValue("ampRelease");
+
+    samplerAttackParam = parameters.getRawParameterValue("samplerAttack");
 
     // fx params     
     delayTimeParam = parameters.getRawParameterValue("delayTime");
     delayFeedbackParam = parameters.getRawParameterValue("delayFeedback");
+
+    audioSampleChoiceParam = parameters.getRawParameterValue("audioSampleChoices");
 
     //osc1ChoiceParam = parameters.getRawParameterValue("osc1Choices");
 
@@ -118,14 +131,20 @@ AP_Final_Assignment_SynthBitAudioProcessor::AP_Final_Assignment_SynthBitAudioPro
         mySampler.addVoice(new juce::SamplerVoice());
     }
 
-   // mySampler.samplerInit();
-    mySampler.setSample(BinaryData::Day_01_HS_Magic_Mechanichal_Hit_wav, BinaryData::Day_01_HS_Magic_Mechanichal_Hit_wavSize);
+    // selects the audio file for the sampler 
+    mySampler.setSample(BinaryData::_17_HS_ACD_AmbientDrone_PS17_wav, BinaryData::_17_HS_ACD_AmbientDrone_PS17_wavSize);
+
+    if (*audioSampleChoiceParam == 1)
+    {
+        mySampler.setSample(BinaryData::_16_HS_HXString_OmniousDrone_PS16_wav, BinaryData::_16_HS_HXString_OmniousDrone_PS16_wavSize);
+    }
     
 }
 
 AP_Final_Assignment_SynthBitAudioProcessor::~AP_Final_Assignment_SynthBitAudioProcessor()
 {
 }
+
 
 //==============================================================================
 const juce::String AP_Final_Assignment_SynthBitAudioProcessor::getName() const
@@ -242,15 +261,19 @@ void AP_Final_Assignment_SynthBitAudioProcessor::processBlock (juce::AudioBuffer
 {
     juce::ScopedNoDenormals noDenormals;
 
+   
+
     for (int i = 0; i < voiceCount; i++)
     {
         HsSynthVoice* v = dynamic_cast<HsSynthVoice*>(mySynth.getVoice(i));
         v->setDetune(*detuneParam);
         v->setFilterCutoff(*filterCutoffParam);
-        v->setLfoFreq(*sineLfoParam);
+        v->setLfoFreq(*lfoParam);
         v->setOutputGain(*mainOutputGainParam);
         v->setAmpAttack(*ampAttackParam); 
         v->setAmpDecay(*ampDecayParam);
+        v->setAmpSustain(*ampSustainParam);
+        v->setAmpRelease(*ampReleaseParam);
         v->setOsc1Vol(*osc1VolParam); 
         v->setOsc2Vol(*osc2VolParam); 
         v->setOscNoiseVol(*noiseOscVolParam); 
@@ -258,14 +281,28 @@ void AP_Final_Assignment_SynthBitAudioProcessor::processBlock (juce::AudioBuffer
         v->setFilterQ(*filterQParam);
         v->setDelayTime(*delayTimeParam);
         v->setDelayFeedback(*delayFeedbackParam);
-        v->linkParameters(osc1ChoiceParam, osc2ChoiceParam, subOscChoiceParam, filterChoiceParam, noiseOscChoiceParam);
+        v->linkParameters(osc1ChoiceParam, osc2ChoiceParam, subOscChoiceParam, filterChoiceParam, noiseOscChoiceParam, lfoParam);
     }
 
-    mySynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-   // mySampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+   
 
     
+    /*for (int i = 0; i < voiceCountSampler; i++)
+    {
+    mySampler* voice = dynamic_cast<mySampler*>(mySampler.getVoice(i));
+    }*/
+    /*for (int i = 0; i < voiceCountSampler; i++)
+    {
+        mySampler* voice = 
+
+    }*/
+
+    mySynth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+    //mySampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+
 }
+
+
 
 //==============================================================================
 bool AP_Final_Assignment_SynthBitAudioProcessor::hasEditor() const
